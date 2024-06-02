@@ -1,7 +1,4 @@
 # Initialize renv virtual environment
-
-renv::init()
-
 renv::restore()
 
 # Install and load pacman for managing packages
