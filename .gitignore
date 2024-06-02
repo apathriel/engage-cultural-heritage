@@ -1,7 +1,9 @@
-**/in/*
-!**/in/.gitkeep
+**/data/*
+!**/data/.gitkeep
 
 __pycache__/
 *.pyc
 
 env
+
+.Rhistory
