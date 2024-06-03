@@ -1,3 +1,4 @@
+import argparse
 import mimetypes
 from pathlib import Path
 import re
@@ -8,6 +9,58 @@ import zipfile
 from logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def parse_cli_args():
+    parser = argparse.ArgumentParser(
+        description="Download and optionally extract zip file from provided URL."
+    )
+    parser.add_argument(
+        "--url",
+        "-u",
+        type=str,
+        help="URL to download zip file from",
+        default="https://sciencedata.dk/shared/ce0f8e62af16dab66b45f13be90d00f8?download",
+        required=False,
+    )
+    parser.add_argument(
+        "--download_target_dir",
+        "-d",
+        type=str,
+        help="Directory to download the zip file to",
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--file_name",
+        "-f",
+        type=str,
+        help="Optionally define the name of the downloaded file",
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--stream_downloads",
+        "-s",
+        action="store_true",
+        help="Flag determining whether to stream downloads",
+        default=False,
+    )
+    parser.add_argument(
+        "--extract-zip", 
+        "-ez", 
+        action="store_true", 
+        help="Extract the downloaded file.",
+        default=True
+    )
+    parser.add_argument(
+        "--delete-zip",
+        "-dz",
+        action="store_true",
+        help="Delete the downloaded file after successful extraction.",
+        default=True,    
+    )
+    return parser.parse_args()
 
 
 class FileDownloader:
@@ -27,9 +80,7 @@ class FileDownloader:
     def update_download_file_path(self, file_path: Path) -> None:
         self.downloaded_file_path = file_path
 
-    def download_file_from_url(
-        self
-    ) -> None:
+    def download_file_from_url(self) -> None:
         logger.info(f"Attempting to download file from: {self.url}")
         try:
             logger.info("Sending GET request...")
@@ -61,7 +112,6 @@ class FileDownloader:
             else:
                 file_name = self.file_name
 
-
             full_file_path = self.download_target_dir / file_name
             full_file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -83,33 +133,46 @@ class FileDownloader:
         except Exception as error:
             logger.error(f"An error occurred: {error}")
 
-
     def extract_zip_to_directory(
         self, extract_path: Path = None, delete_zip: bool = False
     ) -> None:
         if extract_path is None:
             extract_path = self.downloaded_file_path.parent
 
-        logger.info(f"Attempting to extract zip {self.downloaded_file_path.stem} to {extract_path}")
+        logger.info(
+            f"Attempting to extract zip {self.downloaded_file_path.stem} to {extract_path}"
+        )
         with zipfile.ZipFile(self.downloaded_file_path, "r") as zip_ref:
             zip_ref.extractall(extract_path)
-        logger.info(f"Succesfully extracted {self.downloaded_file_path.stem} to {extract_path}!")
+        logger.info(
+            f"Succesfully extracted {self.downloaded_file_path.stem} to {extract_path}!"
+        )
 
         if delete_zip:
             logger.info(f"Attempting to delete zip... {self.downloaded_file_path}")
             self.downloaded_file_path.unlink()
-            logger.info(f"Successfully deleted {self.downloaded_file_path.stem} from the system!")
+            logger.info(
+                f"Successfully deleted {self.downloaded_file_path.stem}.zip from the system!"
+            )
 
 
 def main():
-    download_path = Path(__file__).resolve().parents[1] / "data"
-    download_url = (
-        "https://sciencedata.dk/shared/ce0f8e62af16dab66b45f13be90d00f8?download"
-    )
+    # Get CLI args from argparse handler
+    args = parse_cli_args()
+    
+    # Define default downlaod path, this method for handling Path object
+    if args.download_target_dir is None:
+        download_path = Path(__file__).resolve().parents[1] / "data"
 
-    downloader = FileDownloader(url=download_url, download_target_dir=download_path)
+    # Instantiate FileDownloader object instance with CLI args
+    downloader = FileDownloader(url=args.url, download_target_dir=download_path, file_name=args.file_name, stream_downloads=args.stream_downloads)
+    
+    # Call instance method - Download file from URL attribute
     downloader.download_file_from_url()
-    downloader.extract_zip_to_directory(delete_zip=True)
+    
+    # Optionally call instance method - Extract zip file to directory
+    if args.extract_zip:
+        downloader.extract_zip_to_directory(delete_zip=args.delete_zip)
 
 
 if __name__ == "__main__":
