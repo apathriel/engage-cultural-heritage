@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 
-python -m pip install --user virtualenv
+python3 -m pip install --user virtualenv
 
-python -m virtualenv env
+python3 -m virtualenv env
 
 source ./env/bin/activate
 
