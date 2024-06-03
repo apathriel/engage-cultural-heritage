@@ -33,3 +33,4 @@ cookies/
 # Include renv lock files
 !**/renv.lock
 !**/renv/lock
+.DS_Store
