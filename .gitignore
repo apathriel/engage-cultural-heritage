@@ -12,6 +12,9 @@ env
 # Exclude env files
 *.env*
 
+# Exclude cookies directory
+cookies/
+
 # User-specific files
 .Rhistory
 .Rapp.history
