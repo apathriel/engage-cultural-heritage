@@ -19,6 +19,7 @@ opts_chunk$set(echo=TRUE,
 opts_knit$set(width=75)
 ```
 
+
 ```{r packages}
 install.packages("Rcpp")
 install.packages("fasterize")
@@ -36,57 +37,51 @@ mb_access_token(api_token, install = TRUE, overwrite = TRUE)
 readRenviron("~/.Renviron")
 ```
 
+
+```{r geocode}
+dk <- mb_geocode("Denmark")
+dk
+```
+
+```{r load_data, eval=FALSE}
+library(knitr)
+library(rmdformats)
+library(tidyverse)
+library(sf)
+library(dplyr)
+
+monuments <- read_sf("data/anlaeg_all_25832.shp")
+
+monuments_crs <- st_as_sf(monuments, coords = "geometry")
+monuments_crs <- st_transform(monuments_crs, crs = 4326)
+monuments_crs
+
+test_crs <- monuments_crs %>% 
+  filter(anlaegsbet == "Rundhøj")
+
+test_crs %>% 
+  slice(1:10000)
+
+```
+```{r init_colors}
+
+```
+
 ```{r mabox-map}
 library(leaflet)
 library(mapboxapi)
 
 mapbox_map <- leaflet() %>%
   addMapboxTiles(style_id = "streets-v11",
-                 username = "mapbox") 
-
-mapbox_map
-
-```
-
-```{r geocode}
-dk <- mb_geocode("Denmark")
-dk
-```
-```{r load_data, eval=FALSE}
-library(knitr)
-library(rmdformats)
-library(tidyverse)
-library(sf)
-
-path <- "/Users/peterskousen/Documents/AU - Digital design BA/6. Semester/Spatial Analytics/exam"
-files <- list.files(path)
-print(files)
-monuments <- read_sf("data/anlaeg_all_25832.shp")
-
-head(monuments$datering)
-head(monuments$anlaegsbet)
-
-# Filter Viking-era finds
-viking <- monuments %>% 
-  _____(___________)
-
-# Prepare municipalities
-library(_______)
-municipalities <-  getData(__________)
-municipalities_25832 <- municipalities %>% 
-  st_as_sf(_______)
-
-
-# Plot the monuments on top of the municipalities
-plot(_________(municipalities_25832))
-plot(_________, add = TRUE, pch = 16, col = "red")
-```
-
-requested. Using the returned coordinates, we can focus our Leaflet Mapbox map with the `setView()` function:
-```{r mapbox-dk}
-mapbox_map %>% 
+                 username = "mapbox") %>% 
   setView(lng = dk[1],
           lat = dk[2], 
           zoom = 6.5)
-  addMarkers(mapbox_map, data=monuments)
+  
+mapbox_map %>%
+  addCircleMarkers(data = test_crs,
+                    popup = test_crs$anlaegsbet,
+                    radius = 5,
+                    weight = 1,
+                   clusterOptions = markerClusterOptions(showCoverageOnHover = TRUE))
 ```
