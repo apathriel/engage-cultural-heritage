@@ -55,7 +55,7 @@ def main():
     args = get_cli_args()
 
     # Define paths to input directory + zip file
-    input_directory = Path(__file__).resolve().parents[1] / "in"
+    input_directory = Path(__file__).resolve().parents[1] / "data"
     zip_file_name = args.zip_file_name
     zip_path = input_directory / zip_file_name
 
@@ -67,9 +67,9 @@ def main():
 
     # Remove the zip file after extraction
     if args.delete_zip:
-        logger.info(f"Deleting {zip_path}")
+        logger.info(f"Attempting to delete... {zip_path}")
         zip_path.unlink()
-        logger.info(f"Deleted {zip_path}")
+        logger.info(f"Sucessfully deleted {zip_path}!")
 
 
 if __name__ == "__main__":
