@@ -9,6 +9,9 @@ __pycache__/
 # Exclude python virtual environment
 env
 
+# Exclude env files
+*.env*
+
 # User-specific files
 .Rhistory
 .Rapp.history
