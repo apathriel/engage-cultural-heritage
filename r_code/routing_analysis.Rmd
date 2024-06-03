@@ -1,0 +1,92 @@
+---
+title: "routing_analysis"
+output: html_document
+date: "2024-06-03"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmdformats)
+
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r packages}
+install.packages("Rcpp")
+install.packages("fasterize")
+install.packages("mapboxapi", dependencies = TRUE)
+install.packages("tidyverse")
+install.packages("readr")
+install.packages("sf")
+```
+
+```{r mapbox-auth, eval = FALSE}
+api_token <- readr::read_file("mytoken.txt")
+
+library(mapboxapi)
+mb_access_token(api_token, install = TRUE, overwrite = TRUE)
+readRenviron("~/.Renviron")
+```
+
+```{r mabox-map}
+library(leaflet)
+library(mapboxapi)
+
+mapbox_map <- leaflet() %>%
+  addMapboxTiles(style_id = "streets-v11",
+                 username = "mapbox") 
+
+mapbox_map
+
+```
+
+```{r geocode}
+dk <- mb_geocode("Denmark")
+dk
+```
+```{r load_data, eval=FALSE}
+library(knitr)
+library(rmdformats)
+library(tidyverse)
+library(sf)
+
+path <- "/Users/peterskousen/Documents/AU - Digital design BA/6. Semester/Spatial Analytics/exam"
+files <- list.files(path)
+print(files)
+monuments <- read_sf("data/anlaeg_all_25832.shp")
+
+head(monuments$datering)
+head(monuments$anlaegsbet)
+
+# Filter Viking-era finds
+viking <- monuments %>% 
+  _____(___________)
+
+# Prepare municipalities
+library(_______)
+municipalities <-  getData(__________)
+municipalities_25832 <- municipalities %>% 
+  st_as_sf(_______)
+
+
+# Plot the monuments on top of the municipalities
+plot(_________(municipalities_25832))
+plot(_________, add = TRUE, pch = 16, col = "red")
+```
+
+requested. Using the returned coordinates, we can focus our Leaflet Mapbox map with the `setView()` function:
+```{r mapbox-dk}
+mapbox_map %>% 
+  setView(lng = dk[1],
+          lat = dk[2], 
+          zoom = 6.5)
+  addMarkers(mapbox_map, data=monuments)
+```
