@@ -5,6 +5,7 @@ from typing import List
 import geopandas as gpd
 import pandas as pd
 
+from add_icons_pipeline import translate_dataframe_column_dk_to_en, icon_search_by_column_pipeline
 from code_utilities import timing_decorator
 from data_processing_utilities import load_csv_as_df, export_df_as_csv, get_file_size
 from logging_utils import get_logger
@@ -112,8 +113,16 @@ def main():
         "datering_distributions",
     ]
 
+    english_translations_df = translate_dataframe_column_dk_to_en(
+        df=value_counts_df,
+        output_csv_path=None,
+        column_to_translate="anlaegsbetydning",
+    )
+
+    icon_df = icon_search_by_column_pipeline(english_translations_df, "en_anlaegsbetydning")
+
     export_df_as_csv(
-        value_counts_df,
+        icon_df,
         directory=Path(__file__).resolve().parents[1] / "data" / "output",
         filename="anlaegsbetydning_value_counts",
     )
