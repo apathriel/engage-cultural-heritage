@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import chardet
+import numpy as np
 import pandas as pd
 
 from code_utilities import timing_decorator
@@ -85,3 +86,13 @@ def export_df_as_csv(df: pd.DataFrame, directory: Path, filename: str) -> None:
         logger.error(f"Permission denied when trying to write to file: {file_path}")
     except Exception as e:
         logger.error(f"Unexpected error occurred when trying to write to file: {e}")
+
+def add_empty_columns_to_df(
+    df: pd.DataFrame, columns: List[str], dtypes: Dict[str, str] = None
+) -> pd.DataFrame:
+    for column in columns:
+        if column not in df.columns:
+            df = df.assign(**{column: np.nan})
+            if dtypes and column in dtypes:
+                df[column] = df[column].astype(dtypes[column])
+    return df
