@@ -162,7 +162,7 @@ def main():
     
     # Define default downlaod path, this method for handling Path object
     if args.download_target_dir is None:
-        download_path = Path(__file__).resolve().parents[1] / "data"
+        download_path = Path(__file__).resolve().parents[1] / "data" / "input"
 
     # Instantiate FileDownloader object instance with CLI args
     downloader = FileDownloader(url=args.url, download_target_dir=download_path, file_name=args.file_name, stream_downloads=args.stream_downloads)
