@@ -125,6 +125,7 @@ def main():
         icon_df,
         directory=Path(__file__).resolve().parents[1] / "data" / "output",
         filename="anlaegsbetydning_value_counts",
+        encoding="ISO-8859-1",
     )
 
     # Initialize input/output paths
