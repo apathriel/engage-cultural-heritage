@@ -85,7 +85,7 @@ def main():
         filename="anlaegsbetydning_value_counts",
     )
 
-    print("Script completed!")
+    logger.info("Script completed!")
 
 
 if __name__ == "__main__":
