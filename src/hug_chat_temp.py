@@ -86,7 +86,7 @@ def generate_anlaegsbetydning_pipeline(
         )
 
         definition = message.get_final_text()
-        logger.info(f"Final text from chatbot: {definition}")
+        logger.debug(f"Final text from chatbot: {definition}")
 
         if message.search_enabled():
             try:
@@ -212,7 +212,7 @@ def main():
     )
 
     # Process the first 3 rows of the DataFrame
-    processed_df = generate_definitions_from_dataframe(df, chatbot, use_chunks=False, num_rows=5)
+    processed_df = generate_definitions_from_dataframe(df, chatbot, use_chunks=False, num_rows=None)
 
     output_path = Path(__file__).resolve().parents[1] / "data" / "output"
     export_df_as_csv(processed_df, output_path, "anlaegsbetydning_with_definitions.csv")
