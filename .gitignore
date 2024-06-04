@@ -8,6 +8,7 @@ __pycache__/
 
 # Exclude python virtual environment
 env
+.venv
 
 # Exclude env files
 *.env*
@@ -34,3 +35,4 @@ cookies/
 !**/renv.lock
 !**/renv/lock
 .DS_Store
+index.html
