@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -10,6 +11,25 @@ from logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+def round_to_decimal(number: float, decimal_places: int = 2) -> float:
+    return round(number, decimal_places)
+
+def get_file_size(file_path: Path, size_type: str = "megabytes") -> float:
+    size_in_bytes = os.path.getsize(file_path)
+    
+    size_types = {
+        "bytes": 1,
+        "kilobytes": 1024,
+        "megabytes": 1024 ** 2,
+        "gigabytes": 1024 ** 3,
+    }
+
+    size_type = size_type.lower()
+
+    if size_type not in size_types:
+        raise ValueError(f"Invalid size_type. Expected one of: {list(size_types.keys())}")
+
+    return round_to_decimal(size_in_bytes / size_types[size_type], 3)
 
 @timing_decorator(logger=logger)
 def load_csv_as_df(
