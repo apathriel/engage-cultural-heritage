@@ -1,12 +1,13 @@
 import logging
 from pathlib import Path
 
-def get_logger(name: str, log_to_file: bool = False, log_file: str = 'logfile.log') -> logging.Logger:
+def get_logger(name: str, level: str = 'INFO', log_to_file: bool = False, log_file: str = 'logfile.log') -> logging.Logger:
     """
     Creates and configures a logger with the specified name.
 
     Parameters:
         name (str): The name of the logger. Convention is to use __name__.
+        level (str): The logging level. Default is 'INFO'.
         log_to_file (bool): If True, logs are saved to a file. Otherwise, logs are output to the console.
         log_file (str): The name of the log file. Only used if log_to_file is True.
 
@@ -15,7 +16,16 @@ def get_logger(name: str, log_to_file: bool = False, log_file: str = 'logfile.lo
     """
     name = name.upper()
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+
+    levels = {
+        'CRITICAL': logging.CRITICAL,
+        'ERROR': logging.ERROR,
+        'WARNING': logging.WARNING,
+        'INFO': logging.INFO,
+        'DEBUG': logging.DEBUG,
+    }
+
+    logger.setLevel(levels.get(level.upper(), logging.INFO))
 
     if log_to_file:
         log_dir = Path('logs')
