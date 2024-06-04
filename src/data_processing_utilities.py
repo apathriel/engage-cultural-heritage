@@ -67,7 +67,7 @@ def load_csv_as_df(
     return df
 
 
-def export_df_as_csv(df: pd.DataFrame, directory: Path, filename: str) -> None:
+def export_df_as_csv(df: pd.DataFrame, directory: Path, filename: str, encoding: str = 'utf-8') -> None:
     """
     Export a pandas DataFrame as a CSV file.
 
@@ -75,6 +75,7 @@ def export_df_as_csv(df: pd.DataFrame, directory: Path, filename: str) -> None:
         df (pd.DataFrame): The DataFrame to be exported.
         directory (Path): The directory where the CSV file will be saved.
         filename (str): The name of the CSV file.
+        encoding (str): The encoding to use for the CSV file. Default is 'utf-8'.
 
     Raises:
         PermissionError: If the function does not have permission to create the directory or write the file.
@@ -100,7 +101,7 @@ def export_df_as_csv(df: pd.DataFrame, directory: Path, filename: str) -> None:
 
     logger.info(f"Trying to export DataFrame to CSV: {file_path}")
     try:
-        df.to_csv(file_path, index=False)
+        df.to_csv(file_path, index=False, encoding=encoding)
         logger.info(f"Successfully exported DataFrame to CSV: {file_path}")
     except PermissionError:
         logger.error(f"Permission denied when trying to write to file: {file_path}")
