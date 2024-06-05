@@ -4,6 +4,10 @@ library(pacman)
 
 p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi)
 
+# Source data_prep script, which loads necessary data for map
+source("data_prep_module.r")
+
+# Source functions for map
 source("map_functions_module.r")
 
 # UI code
@@ -11,12 +15,14 @@ ui <- navbarPage("My App",
                  tabPanel("Page 1",
                           sidebarLayout(
                             sidebarPanel(
-                              # Sidebar content goes here
-                              h3("Engage"),
-                              # Add other sidebar content or widgets here
+                              h3("Engagee"),
+                              selectInput("group", "Choose a group:", choices = unique(sevaerdigheder$anlaegsbet))
                             ),
                             mainPanel(
-                              leafletOutput("map")  # Add a leaflet output
+                              # Add a container with a fill and a stroke
+                              div(style = "border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #f9f9f9;",
+                                  leafletOutput("map")  # Add a leaflet output
+                              )
                             )
                           )
                  ),
@@ -31,16 +37,6 @@ ui <- navbarPage("My App",
 
 # Server code
 server <- function(input, output) {
-  # Load data
-  # Prepare data for map
-  monuments <- read_sf("../../data/input/anlaeg_all_25832.shp")
-  
-  monuments_transformed <- st_as_sf(monuments, coords = "geometry") %>% 
-    st_transform(crs = 4326)
-  
-  sevaerdigheder <- monuments_transformed %>% 
-    dplyr::filter(!is.na(sevaerdigh))
-  
   output$map <- renderLeaflet({
     map_functions$create_map(map_data=sevaerdigheder, split_by = "anlaegsbet")
   })
