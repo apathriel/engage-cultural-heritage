@@ -144,7 +144,7 @@ def filter_unprocessed_rows_base(
 
 
 def generate_definitions_from_dataframe(
-    df: pd.DataFrame,
+    input_df: pd.DataFrame,
     chatbot: hugchat.ChatBot,
     chunk_size: int = 2,
     use_chunks: bool = True,
@@ -160,20 +160,20 @@ def generate_definitions_from_dataframe(
         output_dir = Path(__file__).resolve().parents[0]
 
     if use_chunks:
-        # Add empty columns to the original DataFrame for updating
-        df = add_empty_columns_to_df(df, ["definition", "web_search_sources"])
-
         if process_unprocessed_only:
-            df = filter_unprocessed_rows_base(
-                df, [("definition", True), ("web_search_sources", False)]
+            filtered_df = filter_unprocessed_rows_base(
+                input_df, [("definition", True), ("web_search_sources", False)]
             )
+        else:
+            # Add empty columns to the original DataFrame for updating
+            filtered_df = add_empty_columns_to_df(input_df, ["definition", "web_search_sources"])
 
         try:
             # Create chunk indices
-            chunk_indices = np.arange(len(df)) // chunk_size
+            chunk_indices = np.arange(len(filtered_df)) // chunk_size
 
             for chunk_id, chunk in tqdm(
-                df.groupby(chunk_indices), desc="Processing chunks"
+                filtered_df.groupby(chunk_indices), desc="Processing chunks"
             ):
                 logger.info(f"Processing chunk {chunk_id}...")
                 generation_results = process_chunk_from_df(chunk, chatbot)
@@ -194,25 +194,25 @@ def generate_definitions_from_dataframe(
             chunk_df = combine_chunk_files(chunk_dir=chunk_dir, output_path=chunk_dir)
 
             # Reset the indices of the DataFrames before calling update
-            df.reset_index(drop=True, inplace=True)
+            input_df.reset_index(drop=True, inplace=True)
             chunk_df.reset_index(drop=True, inplace=True)
 
             # Update the original DataFrame with the generated definitions
-            df.update(chunk_df)
+            input_df.update(chunk_df)
 
             # Export the updated DataFrame to a CSV file
-            export_df_as_csv(df, output_dir, "anlaegsbetydning_with_definitions.csv")
+            export_df_as_csv(input_df, output_dir, "anlaegsbetydning_with_definitions.csv")
 
-            return df
+            return input_df
     else:
         if num_rows is None:
-            num_rows = len(df)
+            num_rows = len(input_df)
 
         logger.info(f"Processing the first {num_rows} rows of the DataFrame...")
 
         generated_results = []
 
-        for value in tqdm(df["anlaegsbetydning"].iloc[:num_rows]):
+        for value in tqdm(input_df["anlaegsbetydning"].iloc[:num_rows]):
             try:
                 generation = generate_anlaegsbetydning_pipeline(value, chatbot)
             except Exception as e:
@@ -222,16 +222,16 @@ def generate_definitions_from_dataframe(
             generated_results.append(generation)
 
         # Add np.nan for the remaining rows
-        generated_results += [(np.nan, np.nan)] * (len(df) - num_rows)
+        generated_results += [(np.nan, np.nan)] * (len(input_df) - num_rows)
 
         # Unpack the results into two lists
         definitions, web_search_sources = map(list, zip(*generated_results))
 
         # Add the lists as new columns to the DataFrame
-        df["definition"] = definitions
-        df["web_search_sources"] = web_search_sources
+        input_df["definition"] = definitions
+        input_df["web_search_sources"] = web_search_sources
 
-    return df
+    return input_df
 
 
 def main():
