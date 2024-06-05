@@ -121,6 +121,9 @@ def main():
 
     icon_df = icon_search_by_column_pipeline(english_translations_df, "en_anlaegsbetydning")
 
+    # Just try and encode this too, idk why it doesn't work
+    df['anlaegsbetydning'] = df['anlaegsbetydning'].str.encode('ISO-8859-1').str.decode('ISO-8859-1')
+
     export_df_as_csv(
         icon_df,
         directory=Path(__file__).resolve().parents[1] / "data" / "output",
