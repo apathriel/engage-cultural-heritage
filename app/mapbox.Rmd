@@ -39,7 +39,7 @@ library(mapboxapi)
 ```
 
 ```{r mapbox-auth, eval = FALSE}
-api_token <- readr::read_file("mytoken.txt")
+api_token <- readr::read_file("../src/mytoken.txt")
 
 mb_access_token(api_token, install = TRUE, overwrite = TRUE)
 readRenviron("~/.Renviron")
@@ -47,7 +47,7 @@ readRenviron("~/.Renviron")
 
 ```{r load_data, eval=FALSE}
 
-monuments <- read_sf("data/anlaeg_all_25832.shp")
+monuments <- read_sf("../data/anlaeg_all_25832.shp")
 
 monuments_transformed <- st_as_sf(monuments, coords = "geometry") %>% 
   st_transform(crs = 4326)
@@ -117,23 +117,27 @@ mapbox_map
 ```{r mapboxGL}
 # Load the library
 library(mapboxer)
-
+install.packages("mapboxapi")
+library(mapboxapi)
+Sys.setenv(MAPBOX_API_TOKEN = read_file("../src/mytoken.txt"))
 dk <- mb_geocode("Denmark, Odense")
-data <- test_rundhøj 
 
-data %>% 
-  as_mapbox_source() %>% # Convert to GeoJSON
+data <- monuments_transformed %>% 
+  as_mapbox_source(cluster=TRUE,
+                   clusterMaxZoom = 20,
+                   clusterRadius = 50,
+                   clusterMinPoints = 20) %>% # Convert to GeoJSON
   mapboxer(
     center = dk,
-    zoom = 6
+    zoom = 6,
+    style = "mapbox://styles/mapbox/streets-v12"
   ) %>%
-  # Add a navigation control
   add_navigation_control() %>%
-  # Add a layer styling the data of the default source
   add_circle_layer(
     circle_color = "red",
-    circle_radius = 3,
-    # Use a mustache template to add popups to the layer
-    popup = "anlaegsbet"
-  )
+    circle_radius = 5,
+    id = "circles"
+  ) %>% 
+  add_tooltips("circles", tooltip = "Navn: {{anlaegsbet}}")
+data
 ```
