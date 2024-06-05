@@ -55,7 +55,7 @@ monuments_transformed <- st_as_sf(monuments, coords = "geometry") %>%
   st_transform(crs = 4326)
 ```
 
-```{r map functions}
+```{r plot map}
 prepare_data <- function(map_data) {
   data_split <- map_data %>%
     group_split(anlaegsbet)
@@ -114,109 +114,62 @@ create_popup_text <- function(layer_data) {
   return(popup_text)
 }
 
-create_map(monuments)
+create_map(monuments_transformed)
 ```
 
-```{r }
+```{r analyse monuments within buffer + distance}
 
+# Load data
 monument_attraction <- read_sf("../data/sevanlaeg_all_4326_shp/sevanlaeg_all_4326.shp")
+initial_position <- mb_geocode("Aarhus Domkirke", output = "sf")
 
-initial_position <- data.frame(place="Initial position", longitude=10.2033485, latitude=56.174346)
-initial_position <- mb_geocode("Vesterbro Torv, Aarhus")
+# Extract coordinates
+coords <- st_coordinates(initial_position)
 
-initial_sf <- st_as_sf(initial_position, coords = c("longitude", "latitude"), crs = 4326)
+# Create buffer
+buffer <- st_buffer(initial_position, 10000)
 
-coords <- st_coordinates(initial_sf)
-coords
+# Check consistent projection
+stopifnot(st_crs(buffer) == st_crs(monument_attraction))
 
-buffer <- initial_sf %>% 
-  st_buffer(10000)
-
-# Check consistent projection among the objects
-st_crs(buffer) == st_crs(monument_attraction)
-
-# Identify monuments that intersect with the buffer
-monuments_int <- st_intersects(nb_buf, monument_attraction)
-
-# Get the indexes of the monuments within buffer by extracting first element of each list
+# Identify monuments within buffer
+monuments_int <- st_intersects(buffer, monument_attraction)
 int <- monuments_int[[1]]
-
-# Get the names of monuments within the buffer
-monument_attraction$stednavn[int]
 
 # Clip monuments by buffer
 monument_attraction_clip <- st_intersection(monument_attraction, buffer)
 
+# Create map
 map <- leaflet() %>%
-  addMapboxTiles(style_id = "outdoors-v12",
-                 username = "mapbox") %>%
+  addMapboxTiles(style_id = "outdoors-v12", username = "mapbox") %>%
   setView(lng = coords[1], lat = coords[2], zoom = 11)
 
-map %>%
-  addPolygons(data=nb_buf$geometry) %>% 
+# Add layers to map
+map <- map %>%
+  addPolygons(data = buffer$geometry, fillOpacity = 0.1) %>%
   addCircleMarkers(data = monument_attraction_clip,
                    radius = 5,
                    stroke = FALSE,
                    label = ~stednavn,
                    popup = ~anlaegsbet,
                    fillOpacity = 0.8,
-                   color = "red") %>% 
-  addCircleMarkers(data = initial_sf,
-                 radius = 3,
-                 stroke = FALSE,
-                 fillOpacity = 0.8,
-                 color = "blue")
-```
+                   color = "red") %>%
+  addCircleMarkers(data = initial_position,
+                   radius = 3,
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = "blue")
 
+# Calculate routes
+routes_list <- lapply(monument_attraction_clip$geometry, function(x) {
+  mb_directions(origin = coords, destination = st_coordinates(x), profile = "cycling")
+})
 
-```{r mabox-map}
-
-dk <- mb_geocode("Denmark")
-
-data <- monuments_transformed
-data_split <- data %>%
-  group_split(anlaegsbet)
-
-# List all unique groups
-groups <- unique(data$anlaegsbet)
-
-# Initialize the leaflet map
-mapbox_map <- leaflet() %>%
-  addMapboxTiles(style_id = "outdoors-v12",
-                 username = "mapbox") %>%
-  setView(lng = dk[1], lat = dk[2], zoom = 6.5)
-
-# Add markers and cluster for each group
-for (layer_data in data_split) {
-  group_name <- unique(layer_data$anlaegsbet)
-  mapbox_map <- mapbox_map %>%
-    addCircleMarkers(data = layer_data,
-                     group = group_name,
-                     popup = paste(sep = "<br/>",
-                                   "<b><a href=''>Et test-link</a></b>",
-                                   layer_data$anlaegsbet,
-                                   paste0("Her kan man skrive, hvad en ", layer_data$anlaegsbet, " er")),
-                     label = ~stednavn,
-                     clusterOptions = markerClusterOptions(),
-                     radius = 8,
-                     stroke = FALSE,
-                     fillOpacity = 0.8,
-                     color = "red")
+# Add routes to map
+for (route in routes_list) {
+  map <- map %>% 
+    addPolylines(data = route, fillOpacity = 0.1)
 }
-
-# Add layer control and hide all groups initially
-mapbox_map <- mapbox_map %>%
-  addLayersControl(baseGroups = character(0), overlayGroups = groups) %>%
-  addEasyButton(easyButton(
-    icon = "fa-globe", title = "Zoom out",
-    onClick = JS("function(btn, map){ map.setZoom(7); }"))) %>%
-  addEasyButton(easyButton(
-    icon = "fa-crosshairs", title = "Locate Me",
-    onClick = JS("function(btn, map){map.locate({setView: true}); }")))
-
-for (group in groups) {
-  mapbox_map <- mapbox_map %>% hideGroup(group)
-}
-
-mapbox_map
+# Print map
+map
 ```
