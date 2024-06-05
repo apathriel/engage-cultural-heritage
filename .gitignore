@@ -30,6 +30,7 @@ cookies/
 *.Rds
 *.rda
 .Rhistory
+.Renviron
 
 # Include renv lock files
 !**/renv.lock
