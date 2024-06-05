@@ -27,9 +27,10 @@ def combine_chunk_files(
     output_path: Path,
     chunk_file_prefix: str = "chunk_",
     output_filename: str = "combined.csv",
-    save_combined: bool = False,
+    save_combined: bool = True,
     delete_chunks: bool = True,
 ) -> pd.DataFrame:
+    logger.info("Combining chunk files...")
     # Get a list of all chunk files
     chunk_files = list(chunk_dir.glob(f"{chunk_file_prefix}*.csv"))
 
@@ -151,7 +152,7 @@ def generate_definitions_from_dataframe(
     chunk_dir: Optional[Path] = None,
     output_dir: Optional[Path] = None,
     num_rows: Optional[int] = None,
-    process_unprocessed_only: bool = False,
+    process_unprocessed_only: bool = True,
 ) -> pd.DataFrame:
     if chunk_dir is None:
         chunk_dir = Path(__file__).resolve().parents[0]
@@ -169,6 +170,7 @@ def generate_definitions_from_dataframe(
             filtered_df = add_empty_columns_to_df(input_df, ["definition", "web_search_sources"])
 
         try:
+            
             # Create chunk indices
             chunk_indices = np.arange(len(filtered_df)) // chunk_size
 
@@ -193,12 +195,17 @@ def generate_definitions_from_dataframe(
             # Combine all generated chunk csv files into a single DataFrame
             chunk_df = combine_chunk_files(chunk_dir=chunk_dir, output_path=chunk_dir)
 
-            # Reset the indices of the DataFrames before calling update
-            input_df.reset_index(drop=True, inplace=True)
-            chunk_df.reset_index(drop=True, inplace=True)
+            # Set the 'anlaegsbetydning' column as the index for both DataFrames
+            input_df.set_index('anlaegsbetydning', inplace=True)
+            chunk_df.set_index('anlaegsbetydning', inplace=True)
 
-            # Update the original DataFrame with the generated definitions
+            # Create a mask for updating only rows where definition column contains error, or is empty
+            mask = input_df['definition'].str.contains("ERROR") | input_df['definition'].isna()
+
             input_df.update(chunk_df)
+
+            # Reset the index in input_df
+            input_df.reset_index(inplace=True)
 
             # Export the updated DataFrame to a CSV file
             export_df_as_csv(input_df, output_dir, "anlaegsbetydning_with_definitions.csv")
@@ -253,7 +260,7 @@ def main():
     chunk_output_dir = Path(__file__).resolve().parents[1] / "data" / "output" / "temp"
     chunk_output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = load_csv_as_df(input_csv_path)
+    df = load_csv_as_df(processed_csv_path)
 
     cookie_path_dir = (
         "./cookies/"  # Note: trailing slash (/) is required to avoid errors
@@ -271,7 +278,7 @@ def main():
     )
 
     processed_df = generate_definitions_from_dataframe(
-        df=df,
+        input_df=df,
         chatbot=chatbot,
         use_chunks=True,
         chunk_dir=chunk_output_dir,
@@ -279,7 +286,7 @@ def main():
         num_rows=None,
     )
 
-    export_df_as_csv(processed_df, output_path, "anlaegsbetydning_with_definitions.csv")
+    # export_df_as_csv(processed_df, output_path, "anlaegsbetydning_with_definitions.csv")
 
 
 if __name__ == "__main__":
