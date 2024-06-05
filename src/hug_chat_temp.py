@@ -203,7 +203,7 @@ def generate_definitions_from_dataframe(
             mask = input_df['definition'].str.contains("ERROR") | input_df['definition'].isna()
 
             # Update the values using loc
-            input_df.loc[mask, 'definition'] = chunk_df.loc[input_df[mask].index, 'definition']
+            input_df.loc[mask, ['definition', 'web_search_sources']] = chunk_df.loc[input_df[mask].index, ['definition', 'web_search_sources']]
 
             # Reset the index in input_df
             input_df.reset_index(inplace=True)
