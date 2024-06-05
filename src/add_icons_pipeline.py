@@ -62,6 +62,7 @@ def translate_dataframe_column_dk_to_en(
 
     tqdm.pandas()
 
+    logger.info(f"Starting translation of column {column_to_translate} from Danish to English...")
     # Create a new pandas Series by applying the translator to every value from the specified column
     english_translations = df[column_to_translate].progress_apply(
         lambda text: translator(text)[0]["translation_text"]
