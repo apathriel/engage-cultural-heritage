@@ -202,7 +202,8 @@ def generate_definitions_from_dataframe(
             # Create a mask for updating only rows where definition column contains error, or is empty
             mask = input_df['definition'].str.contains("ERROR") | input_df['definition'].isna()
 
-            input_df.update(chunk_df)
+            # Update the values using loc
+            input_df.loc[mask, 'definition'] = chunk_df.loc[input_df[mask].index, 'definition']
 
             # Reset the index in input_df
             input_df.reset_index(inplace=True)
