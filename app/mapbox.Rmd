@@ -63,12 +63,11 @@ test_rundhøj
 library(dplyr)
 library(leaflet)
 library(purrr)
+library(htmltools)
 
 dk <- mb_geocode("Denmark")
 
 data <- monuments_transformed
-
-# Split data by group
 data_split <- data %>%
   group_split(anlaegsbet)
 
@@ -87,7 +86,7 @@ for (layer_data in data_split) {
   mapbox_map <- mapbox_map %>%
     addCircleMarkers(data = layer_data,
                      group = group_name,
-                     popup = ~anlaegsbet,
+                     popup = ai_text[~anlaegsbet],
                      label = ~stednavn,
                      clusterOptions = markerClusterOptions(),
                      radius = 8,
