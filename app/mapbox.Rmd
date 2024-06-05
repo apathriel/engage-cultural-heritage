@@ -28,7 +28,7 @@ install.packages("sf")
 install.packages("mapboxer")
 ```
 
-```{r initialize libraries}
+```{r initialize libraries, message=FALSE}
 library(leaflet)
 library(mapboxapi)
 library(knitr)
@@ -114,8 +114,60 @@ create_popup_text <- function(layer_data) {
   return(popup_text)
 }
 
-create_map(monuments_transformed)
+create_map(monuments)
 ```
+
+```{r }
+
+monument_attraction <- read_sf("../data/sevanlaeg_all_4326_shp/sevanlaeg_all_4326.shp")
+
+initial_position <- data.frame(place="Initial position", longitude=10.2033485, latitude=56.174346)
+initial_position <- mb_geocode("Vesterbro Torv, Aarhus")
+
+initial_sf <- st_as_sf(initial_position, coords = c("longitude", "latitude"), crs = 4326)
+
+coords <- st_coordinates(initial_sf)
+coords
+
+buffer <- initial_sf %>% 
+  st_buffer(10000)
+
+# Check consistent projection among the objects
+st_crs(buffer) == st_crs(monument_attraction)
+
+# Identify monuments that intersect with the buffer
+monuments_int <- st_intersects(nb_buf, monument_attraction)
+
+# Get the indexes of the monuments within buffer by extracting first element of each list
+int <- monuments_int[[1]]
+
+# Get the names of monuments within the buffer
+monument_attraction$stednavn[int]
+
+# Clip monuments by buffer
+monument_attraction_clip <- st_intersection(monument_attraction, buffer)
+
+map <- leaflet() %>%
+  addMapboxTiles(style_id = "outdoors-v12",
+                 username = "mapbox") %>%
+  setView(lng = coords[1], lat = coords[2], zoom = 11)
+
+map %>%
+  addPolygons(data=nb_buf$geometry) %>% 
+  addCircleMarkers(data = monument_attraction_clip,
+                   radius = 5,
+                   stroke = FALSE,
+                   label = ~stednavn,
+                   popup = ~anlaegsbet,
+                   fillOpacity = 0.8,
+                   color = "red") %>% 
+  addCircleMarkers(data = initial_sf,
+                 radius = 3,
+                 stroke = FALSE,
+                 fillOpacity = 0.8,
+                 color = "blue")
+```
+
 
 ```{r mabox-map}
 
@@ -167,32 +219,4 @@ for (group in groups) {
 }
 
 mapbox_map
-```
-
-```{r mapboxGL}
-# Load the library
-library(mapboxer)
-install.packages("mapboxapi")
-library(mapboxapi)
-Sys.setenv(MAPBOX_API_TOKEN = read_file("../src/mytoken.txt"))
-dk <- mb_geocode("Denmark, Odense")
-
-data <- monuments_transformed %>% 
-  as_mapbox_source(cluster=TRUE,
-                   clusterMaxZoom = 20,
-                   clusterRadius = 50,
-                   clusterMinPoints = 20) %>% # Convert to GeoJSON
-  mapboxer(
-    center = dk,
-    zoom = 6,
-    style = "mapbox://styles/mapbox/streets-v12"
-  ) %>%
-  add_navigation_control() %>%
-  add_circle_layer(
-    circle_color = "red",
-    circle_radius = 5,
-    id = "circles"
-  ) %>% 
-  add_tooltips("circles", tooltip = "Navn: {{anlaegsbet}}")
-data
 ```
