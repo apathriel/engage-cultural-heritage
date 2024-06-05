@@ -45,10 +45,28 @@ map_functions$add_markers <- function(mapbox_map, data_split) {
   return(mapbox_map)
 }
 
+# Add markers to map in a single layer
+map_functions$add_markers_single_layer <- function(mapbox_map, data) {
+  popup_text <- map_functions$create_popup_text(data)
+  mapbox_map <- mapbox_map %>%
+    addCircleMarkers(
+      data = data,
+      popup = popup_text,
+      label = ~ stednavn,
+      clusterOptions = markerClusterOptions(),
+      radius = 8,
+      stroke = FALSE,
+      fillOpacity = 0.8,
+      color = "red"
+    )
+  return(mapbox_map)
+}
+
 # Add controls to map
 map_functions$add_controls <- function(mapbox_map, groups) {
+  
   mapbox_map <- mapbox_map %>%
-    addLayersControl(baseGroups = character(0), overlayGroups = groups) %>%
+    # addLayersControl(baseGroups = character(0), overlayGroups = groups) %>%
     addEasyButton(easyButton(
       icon = "fa-globe",
       title = "Zoom out",
@@ -80,7 +98,8 @@ map_functions$create_map <- function(map_data, split_by = "anlaegsbet") {
             lat = dk[2],
             zoom = 6.5)
   
-  mapbox_map <- map_functions$add_markers(mapbox_map, data_split)
+  # mapbox_map <- map_functions$add_markers(mapbox_map, data_split)
+  mapbox_map <- map_functions$add_markers_single_layer(mapbox_map, map_data)
   
   mapbox_map <- map_functions$add_controls(mapbox_map, groups)
   
