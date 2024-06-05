@@ -97,7 +97,7 @@ def generate_anlaegsbetydning_pipeline(
     try:
         message = prompt_hf_chatbot(
             chatbot=chatbot_instance,
-            prompt=construct_hf_query(PROMPT, value),
+            prompt=construct_hf_query(value, PROMPT),
             use_web_search=use_web_search,
         )
 
@@ -246,6 +246,7 @@ def main():
     # Load fortidsminder data, anlaegsbetydninger for descriptions
     input_directory_path = Path(__file__).resolve().parents[1] / "data" / "output"
     input_csv_path = input_directory_path / "anlaegsbetydning_value_counts.csv"
+    processed_csv_path = input_directory_path / "anlaegsbetydning_with_definitions.csv"
 
     output_path = Path(__file__).resolve().parents[1] / "data" / "output"
 
