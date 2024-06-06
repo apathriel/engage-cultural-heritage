@@ -1,11 +1,17 @@
-# renv::restore()
+renv::restore()
+
+# readRenviron(".Renviron")
+
+config <- config::get()
+Sys.setenv(MAPBOX_ACCESS_TOKEN = config$mapbox_token)
+mb_access_token(config$mapbox_token, install = TRUE, overwrite = TRUE)
 
 pacman::p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, logger, RCurl)
 
 map_functions <- new.env()
 
 map_functions$return_geocoding <- function(query) {
-  geocode_result <- mb_geocode(query)
+  geocode_result <- mb_geocode(query, access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN"))
   return(geocode_result)
 }
 
@@ -103,16 +109,16 @@ map_functions$add_controls <- function(mapbox_map, groups) {
 
 # Create map
 map_functions$create_map <- function(map_data, split_by = "anlaegsbet") {
-  dk <- mb_geocode("Denmark")
+  dk <- mb_geocode("Denmark", access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN"))
   data_prep <- map_functions$prepare_data(map_data, split_by)
   data_split <- data_prep$data_split
   groups <- data_prep$groups
   
   mapbox_map <- leaflet() %>%
-    addMapboxTiles(style_id = "outdoors-v12", username = "mapbox", group = "Outdoors") %>%
-    addMapboxTiles(style_id = "satellite-streets-v12", username = "mapbox", group = "Satellite") %>%
-    addMapboxTiles(style_id = "streets-v12", username = "mapbox", group = "Streets") %>%
-    addMapboxTiles(style_id = "navigation-day-v1", username = "mapbox", group = "Navigation") %>% 
+    addMapboxTiles(style_id = "outdoors-v12", username = "mapbox", group = "Outdoors", access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN")) %>%
+    addMapboxTiles(style_id = "satellite-streets-v12", username = "mapbox", group = "Satellite", access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN")) %>%
+    addMapboxTiles(style_id = "streets-v12", username = "mapbox", group = "Streets", access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN")) %>%
+    addMapboxTiles(style_id = "navigation-day-v1", username = "mapbox", group = "Navigation", access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN")) %>% 
     setView(lng = dk[1],
             lat = dk[2],
             zoom = 6.5) 

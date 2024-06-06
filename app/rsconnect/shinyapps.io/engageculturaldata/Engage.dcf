@@ -1,11 +1,11 @@
 name: Engage
-title: Engage
+title: app
 username: engageculturaldata
 account: engageculturaldata
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12138561
-bundleId: 8710033
+bundleId: 8711054
 url: https://engageculturaldata.shinyapps.io/Engage/
 version: 1
 asMultiple: FALSE

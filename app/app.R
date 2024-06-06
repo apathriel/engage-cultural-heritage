@@ -4,6 +4,10 @@ library(pacman)
 
 p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, shinyWidgets)
 
+config <- config::get()
+Sys.setenv(MAPBOX_ACCESS_TOKEN = config$mapbox_token)
+mb_access_token(config$mapbox_token, install = TRUE, overwrite = TRUE)
+
 # Source data_prep script, which loads necessary data for map
 source("data_prep_module.r")
 
@@ -98,6 +102,7 @@ ui <- navbarPage(
 
 
 server <- function(input, output, session) {
+  print(Sys.getenv("MAPBOX_ACCESS_TOKEN"))
   # Reactive expressions
   # --------------------
 
@@ -174,7 +179,7 @@ server <- function(input, output, session) {
       # Remove rows with POINT EMPTY geometries
       coords_sf <- coords_sf[!st_is_empty(coords_sf$geometry), ]
 
-      opt_route <- mb_optimized_route(coords_sf, profile = transportation_medium())
+      opt_route <- mb_optimized_route(coords_sf, profile = transportation_medium(), access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN"))
 
       leafletProxy("map") %>% addPolylines(
         data = opt_route$route, color = "green", group = "GroupRoute"
@@ -194,7 +199,7 @@ server <- function(input, output, session) {
       print(clipped_points())
       coords <- c(marker_lng, marker_lat)
       routes_list <- lapply(clipped_points()$geometry, function(x) {
-        route <- mb_directions(origin = coords, destination = st_coordinates(x), profile = transportation_medium())
+        route <- mb_directions(origin = coords, destination = st_coordinates(x), profile = transportation_medium(), access_token = Sys.getenv("MAPBOX_ACCESS_TOKEN"))
         return(route)
       })
       for (route in routes_list) {
