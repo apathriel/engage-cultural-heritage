@@ -1,5 +1,7 @@
 renv::restore()
 
+readRenviron("~/.Renviron")
+
 pacman::p_load(sf, dplyr, tidyverse, logger, raster, RCurl)
 
 image_path <- "../../preprocessed_data/example.png"
