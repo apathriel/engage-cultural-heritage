@@ -121,22 +121,18 @@ create_map(monuments_transformed)
 
 # Load data
 monument_attraction <- read_sf("../data/sevanlaeg_all_4326_shp/sevanlaeg_all_4326.shp")
-initial_position <- mb_geocode("Aarhus Domkirke", output = "sf")
+initial_position <- mb_geocode("Odense", output = "sf")
 
 # Extract coordinates
 coords <- st_coordinates(initial_position)
 
 # Create buffer
-buffer <- st_buffer(initial_position, 10000)
+buffer <- st_buffer(initial_position, 20000)
 
 # Check consistent projection
-stopifnot(st_crs(buffer) == st_crs(monument_attraction))
+st_crs(buffer) == st_crs(monument_attraction)
 
-# Identify monuments within buffer
-monuments_int <- st_intersects(buffer, monument_attraction)
-int <- monuments_int[[1]]
-
-# Clip monuments by buffer
+# Clip monuments by buffer (mb_optimized_route only accepts up to 12 points)
 monument_attraction_clip <- st_intersection(monument_attraction, buffer)
 
 # Create map
@@ -160,16 +156,24 @@ map <- map %>%
                    fillOpacity = 0.8,
                    color = "blue")
 
-# Calculate routes
+# Calculate seperate routes and plot them to map
 routes_list <- lapply(monument_attraction_clip$geometry, function(x) {
   mb_directions(origin = coords, destination = st_coordinates(x), profile = "cycling")
 })
-
-# Add routes to map
 for (route in routes_list) {
   map <- map %>% 
     addPolylines(data = route, fillOpacity = 0.1)
 }
-# Print map
+
+# Optimized route along all points
+coords_list <- st_coordinates(monument_attraction_clip$geometry)
+coords_df <- data.frame(
+  X = coords_list[, 1],
+  Y = coords_list[, 2]
+)
+coords_sf <- st_as_sf(coords_df, coords = c("X", "Y"), crs = 4326)[1:12,]
+opt_route <- mb_optimized_route(coords_sf, profile="walking")
+map %>% addPolylines(data = opt_route$route)
+
 map
 ```
