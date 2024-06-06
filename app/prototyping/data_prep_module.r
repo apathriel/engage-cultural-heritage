@@ -1,8 +1,8 @@
-# renv::restore()
+renv::restore()
 
 pacman::p_load(sf, dplyr, tidyverse, logger, raster, RCurl)
 
-image_path <- "../../data/input/example.png"
+image_path <- "../../preprocessed_data/example.png"
 img_data <- readBin(image_path, "raw", n = file.info(image_path)$size)
 img_base64 <- paste0("data:image/png;base64,", base64Encode(img_data, "utf-8"))
 
