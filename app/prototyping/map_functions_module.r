@@ -39,9 +39,10 @@ map_functions$create_popup_text <- function(layer_data) {
 
 
 # Add markers to map
-map_functions$add_markers <- function(mapbox_map, data_split) {
+map_functions$add_markers <- function(mapbox_map, data_split, group_name = NULL) {
   for (layer_data in data_split) {
-    group_name <- unique(layer_data$anlaegsbet)
+    # If group_name is not provided, use unique values in layer_data$anlaegsbet
+    group_name <- ifelse(is.null(group_name), unique(layer_data$anlaegsbet), group_name)
     popup_text <- map_functions$create_popup_text(layer_data)
     mapbox_map <- mapbox_map %>%
       addCircleMarkers(
