@@ -10,19 +10,17 @@ source("data_prep_module.r")
 # Source functions for map
 source("map_functions_module.r")
 
-# Source server functions, because it was really hard to read
-# source("server_functions_module.r")
 
 # UI code
 ui <- navbarPage(
   "Engage!",
   includeCSS("styles.css"),
   tabPanel(
-    "Page 1",
+    "Map",
     sidebarLayout(
       sidebarPanel(
-        h3("Engageeeeeeeeeee"),
-        p("This is a shiny app to engage with the data!"),
+        h3("Engage"),
+        p("This is a Shiny app developed for exploration of Danish monuments (fortidsminder) for non-expert users."),
         div(
           class = "search-container",
           textInput("search", "Search:"),
@@ -52,18 +50,40 @@ ui <- navbarPage(
               icon = icon("bullseye"),
               style = "width: 100%; margin-bottom: 16px;"
             ),
-            div(
-              style = "display: flex; justify-content: space-between; margin-bottom: 16px;",
-              actionButton("individual_route_button", "Generate individual routes", style = "flex: 1; margin-right: 10px;"),
-              actionButton("grouped_route_button", "Generate adventure route", style = "flex: 1; margin-left: 10px;")
+            actionButton("get_and_clip_points",
+              "Generate Sevaerdigheder",
+              icon = icon("binoculars"),
+              style = "width: 100%; margin-bottom: 16px;"
             ),
             div(
+              p("Please select transportation mode:"),
+              div(
+                style = "display: flex; justify-content: space-between; margin-bottom: 16px; gap: 8px;",
+                actionButton("transport_drive", "Driving", icon = icon("car"), style = "flex: 1;"),
+                actionButton("transport_cycling", "Cycling", icon = icon("bicycle"), style = "flex: 1;"),
+                actionButton("transport_walking", "Walking", icon = icon("user"), style = "flex: 1;")
+              )
+            ),
+            div(p("Please select type of route:"), div(
+              style = "display: flex; justify-content: space-between; margin-bottom: 16px;",
+              actionButton("individual_route_button", "Individual routes", icon = icon("location-arrow"), style = "flex: 1; margin-right: 10px;"),
+              actionButton("grouped_route_button", "Adventure route", icon = icon("map"), style = "flex: 1; margin-left: 10px;")
+            )),
+            div(
               style = "display: flex; justify-content: space-between;",
-              actionButton("export_routes_button", "Export route suggestions", style = "flex: 1;")
+              actionButton("export_routes_button", "Export route suggestions", icon = icon("table"), style = "flex: 1;")
             )
           )
         ),
-        p("Please note that any AI generated content may be highly inaccurate or false. Certainly not historically accurate!")
+        p("Please note that any AI generated content may be highly inaccurate or false. Certainly not historically accurate!"),
+        p(
+          "The dataset 'Fortidsminder' was sourced from ",
+          tags$a(href = "https://slks.dk/", "Slots- og kulturstyrelsen"),
+          " from ",
+          tags$a(href = "https://www.kulturarv.dk/fundogfortidsminder/Download/", "kulturarv.dk"),
+          ".The data is freely available to the danish public."
+        ),
+        p("This project was developed by Gabriel Høst Andersen, Aarhus University & Peter Skousen, Aarhus University for the course 'Spatial Analytics F2024'"),
       ),
       mainPanel(
         id = "map-main-panel",
@@ -73,22 +93,14 @@ ui <- navbarPage(
         )
       )
     )
-  ),
-  tabPanel(
-    "Page 2",
-    fluidPage(
-      titlePanel("Page 2"),
-      h3("This is Page 2"),
-    )
   )
 )
 
 
 server <- function(input, output, session) {
-  
   # Reactive expressions
   # --------------------
-  
+
   # Filter data based on the selected group(s) from pickerInput
   filtered_data <- reactive({
     monuments_transformed[monuments_transformed$anlaegsbet %in% input$group, ]
@@ -112,10 +124,126 @@ server <- function(input, output, session) {
   marker_id <- reactiveValues(id = NULL)
   buffer <- reactiveValues(data = NULL)
 
-  
+
   # Observers
   # ---------
-  
+
+  # Observe transport button updates, radio boxes more optimal, buttons function as such
+  observeEvent(input$transport_drive, {
+    transportation_medium("driving")
+    print("Driving selected")
+  })
+
+  observeEvent(input$transport_cycling, {
+    transportation_medium("cycling")
+    print("Cycling selected")
+  })
+
+  observeEvent(input$transport_walking, {
+    transportation_medium("walking")
+    print("Walking selected")
+  })
+
+  # Observer for generating routes to all sevaerdigheder
+  observeEvent(input$grouped_route_button, {
+    print("Generating grouped route")
+
+    # Check if clipped_points is not empty
+    if (nrow(clipped_points()) == 0) {
+      print("Clipped_points is empty. No sevaerdigheder found within the buffer.")
+      print(clipped_points())
+    } else if (nrow(clipped_points()) == 1) {
+      showModal(modalDialog(
+        title = "Route Generation Error",
+        "Only one sevaerdighed found within the buffer. Cannot generate a route.",
+        easyClose = TRUE
+      ))
+    } else {
+      marker_coords <- c(marker_lng, marker_lat)
+      coords_list <- st_coordinates(clipped_points()$geometry)
+      coords_df <- data.frame(
+        X = coords_list[, 1],
+        Y = coords_list[, 2]
+      )
+
+      # Add marker_coords as the first row
+      coords_df <- rbind(data.frame(X = marker_coords[1], Y = marker_coords[2]), coords_df)
+
+      coords_sf <- st_as_sf(coords_df, coords = c("X", "Y"), crs = 4326)[1:12, ]
+
+      # Remove rows with POINT EMPTY geometries
+      coords_sf <- coords_sf[!st_is_empty(coords_sf$geometry), ]
+
+      opt_route <- mb_optimized_route(coords_sf, profile = transportation_medium())
+
+      leafletProxy("map") %>% addPolylines(
+        data = opt_route$route, color = "green", group = "GroupRoute"
+      )
+    }
+  })
+
+  # Observer for generating routes to each sevaerdighed
+  observeEvent(input$individual_route_button, {
+    print("Generating individual routes")
+
+    # Check if clipped_points is not empty
+    if (nrow(clipped_points()) == 0) {
+      print("clipped_points is empty")
+      print(clipped_points())
+    } else {
+      print(clipped_points())
+      coords <- c(marker_lng, marker_lat)
+      routes_list <- lapply(clipped_points()$geometry, function(x) {
+        route <- mb_directions(origin = coords, destination = st_coordinates(x), profile = transportation_medium())
+        return(route)
+      })
+      for (route in routes_list) {
+        leafletProxy("map") %>%
+          addPolylines(
+            data = route, color = "red", group = "Routes",
+            popup = paste("Distance:", route$distance, "Duration:", route$duration)
+          )
+      }
+    }
+  })
+
+
+  # Define clipped_points as a reactive value
+  transportation_medium <- reactiveVal("driving")
+  clipped_points <- reactiveVal()
+  # Observer for generating sevaerdigheder within the buffer and adding them to the map
+  observeEvent(input$get_and_clip_points, {
+    if (!is.null(buffer$data)) {
+      print("Getting and clipping points")
+
+      # Clip the points by the buffer
+      clipped_points(st_intersection(sevaerdigheder, buffer$data))
+
+      # Check if there are no points within the buffer
+      if (nrow(clipped_points()) == 0) {
+        # Show a modal dialog with the message
+        showModal(modalDialog(
+          title = "Warning",
+          "No points found within the buffer.",
+          easyClose = TRUE
+        ))
+      } else {
+        # Prepare the data
+        data_prep <- map_functions$prepare_data(clipped_points(), split_by = "anlaegsbet")
+
+        # Add the points to the map
+        leafletProxy("map") %>% map_functions$add_markers(data_prep$data_split, group_name = "sevaerdigheder")
+      }
+    } else {
+      # Show a modal dialog with the message
+      showModal(modalDialog(
+        title = "Warning",
+        "No buffer generated. Please generate a buffer first.",
+        easyClose = TRUE
+      ))
+    }
+  })
+
   # Observer for search_result
   observeEvent(search_result(), {
     if (!is.null(search_result())) {
@@ -144,6 +272,12 @@ server <- function(input, output, session) {
       # Remove the old buffer if it exists
       if (!is.null(buffer$data)) {
         leafletProxy("map") %>% removeShape(layerId = "my_buffer")
+
+        leafletProxy("map") %>% clearGroup("sevaerdigheder")
+
+        leafletProxy("map") %>% clearGroup("Routes")
+
+        leafletProxy("map") %>% clearGroup("GroupRoute")
       }
 
       # Create a point from the marker's coordinates
@@ -151,6 +285,13 @@ server <- function(input, output, session) {
 
       # Create a buffer around the point
       buffer$data <- st_buffer(point, dist = input$km_slider * 1000)
+
+      # Get the bounds of the buffer for zooming the view
+      # Converting named numeric vector to list to avoid error in leafletProxy / jsonlite..
+      bounds <- as.list(st_bbox(buffer$data))
+
+      # Adjust the map view to fit the buffer bounds generated above
+      leafletProxy("map") %>% fitBounds(bounds$`xmin`, bounds$`ymin`, bounds$`xmax`, bounds$`ymax`)
     } else {
       # Display a popup message
       showModal(modalDialog(title = "Warning", "Please place a marker before generating a buffer!", easyClose = TRUE))
@@ -169,7 +310,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # Observer for map_click
+  # Observer for map_click - Built in observer for leaflet maps in Shiny
   observeEvent(input$map_click, {
     if (input$place_marker) {
       # Get the coordinates of the click event
@@ -186,7 +327,15 @@ server <- function(input, output, session) {
       if (!is.null(buffer$data)) {
         leafletProxy("map") %>% removeShape(layerId = "my_buffer")
         buffer$data <- NULL
+
+        # Remove the old sevaerdigheder markers if it exists, keep all other markers
+        leafletProxy("map") %>% clearGroup("sevaerdigheder")
+
+        leafletProxy("map") %>% clearGroup("Routes")
+
+        leafletProxy("map") %>% clearGroup("GroupRoute")
       }
+
 
       # Add a new marker at the click location
       leafletProxy("map") %>% addMarkers(lng = lng, lat = lat, popup = paste("Marker at:", lng, ",", lat), layerId = "my_marker")
@@ -196,10 +345,10 @@ server <- function(input, output, session) {
     }
   })
 
-  
+
   # Render functions
   # ----------------
-  
+
   # Render the leaflet map
   output$map <- renderLeaflet({
     # Use the reactive filtered_data() instead of the original data
