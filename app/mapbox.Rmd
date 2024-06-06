@@ -121,7 +121,7 @@ create_map(monuments_transformed)
 
 # Load data
 monument_attraction <- read_sf("../data/sevanlaeg_all_4326_shp/sevanlaeg_all_4326.shp")
-initial_position <- mb_geocode("Odense", output = "sf")
+initial_position <- mb_geocode("Aarhus", output = "sf")
 
 # Extract coordinates
 coords <- st_coordinates(initial_position)
@@ -158,7 +158,7 @@ map <- map %>%
 
 # Calculate seperate routes and plot them to map
 routes_list <- lapply(monument_attraction_clip$geometry, function(x) {
-  mb_directions(origin = coords, destination = st_coordinates(x), profile = "cycling")
+  mb_directions(origin = coords, destination = st_coordinates(x), profile = "driving")
 })
 for (route in routes_list) {
   map <- map %>% 
@@ -172,7 +172,7 @@ coords_df <- data.frame(
   Y = coords_list[, 2]
 )
 coords_sf <- st_as_sf(coords_df, coords = c("X", "Y"), crs = 4326)[1:12,]
-opt_route <- mb_optimized_route(coords_sf, profile="walking")
+opt_route <- mb_optimized_route(coords_sf, profile="driving")
 map %>% addPolylines(data = opt_route$route)
 
 map
