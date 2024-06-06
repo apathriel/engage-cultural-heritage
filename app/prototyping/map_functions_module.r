@@ -1,6 +1,6 @@
 renv::restore()
 
-pacman::p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi)
+pacman::p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, logger)
 
 map_functions <- new.env()
 
@@ -62,11 +62,16 @@ map_functions$add_markers_single_layer <- function(mapbox_map, data) {
   return(mapbox_map)
 }
 
-# Add controls to map
 map_functions$add_controls <- function(mapbox_map, groups) {
-  
+  # Add layer control
   mapbox_map <- mapbox_map %>%
-    # addLayersControl(baseGroups = character(0), overlayGroups = groups) %>%
+    addLayersControl(
+      baseGroups = c("Outdoors", "Satellite", "Streets", "Navigation"),
+      options = layersControlOptions(collapsed = TRUE)
+    )
+  
+  # Add easy buttons
+  mapbox_map <- mapbox_map %>%
     addEasyButton(easyButton(
       icon = "fa-globe",
       title = "Zoom out",
@@ -77,10 +82,6 @@ map_functions$add_controls <- function(mapbox_map, groups) {
       title = "Locate Me",
       onClick = JS("function(btn, map){map.locate({setView: true}); }")
     ))
-  
-  for (group in groups) {
-    mapbox_map <- mapbox_map %>% hideGroup(group)
-  }
   
   return(mapbox_map)
 }
@@ -93,13 +94,16 @@ map_functions$create_map <- function(map_data, split_by = "anlaegsbet") {
   groups <- data_prep$groups
   
   mapbox_map <- leaflet() %>%
-    addMapboxTiles(style_id = "outdoors-v12", username = "mapbox") %>%
+    addMapboxTiles(style_id = "outdoors-v12", username = "mapbox", group = "Outdoors") %>%
+    addMapboxTiles(style_id = "satellite-streets-v12", username = "mapbox", group = "Satellite") %>%
+    addMapboxTiles(style_id = "streets-v12", username = "mapbox", group = "Streets") %>%
+    addMapboxTiles(style_id = "navigation-day-v1", username = "mapbox", group = "Navigation") %>% 
     setView(lng = dk[1],
             lat = dk[2],
             zoom = 6.5)
   
-  # mapbox_map <- map_functions$add_markers(mapbox_map, data_split)
-  mapbox_map <- map_functions$add_markers_single_layer(mapbox_map, map_data)
+  mapbox_map <- map_functions$add_markers(mapbox_map, data_split)
+ #  mapbox_map <- map_functions$add_markers_single_layer(mapbox_map, map_data)
   
   mapbox_map <- map_functions$add_controls(mapbox_map, groups)
   
