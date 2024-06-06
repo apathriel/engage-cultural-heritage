@@ -1,8 +1,13 @@
-renv::restore()
+# renv::restore()
 
-pacman::p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, logger)
+pacman::p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, logger, RCurl)
 
 map_functions <- new.env()
+
+map_functions$return_geocoding <- function(query) {
+  geocode_result <- mb_geocode(query)
+  return(geocode_result)
+}
 
 # Prepare data
 map_functions$prepare_data <- function(map_data, split_by = "anlaegsbet") {
@@ -14,15 +19,22 @@ map_functions$prepare_data <- function(map_data, split_by = "anlaegsbet") {
 
 # Create popup text
 map_functions$create_popup_text <- function(layer_data) {
-  group_name <- unique(layer_data$anlaegsbet)
-  popup_text <- paste(
-    sep = "\n",
-    paste0("<b><a href=''>", layer_data$stednavn, "</a></b>"),
-    layer_data$anlaegsbet,
-    paste0("Her kan man skrive, hvad ", layer_data$anlaegsbet, " er")
+  monument_title <- layer_data$stednavn
+  group_name <- layer_data$anlaegsbet
+  datering <- layer_data$datering
+  read_more_url <- layer_data$url
+  rag_description <- anlaegs_meta_data$definition[anlaegs_meta_data$anlaegsbetydning %in% group_name]
+  most_common_datering <- anlaegs_meta_data$most_frequent_datering[anlaegs_meta_data$anlaegsbetydning == group_name]
+  popup_text <- paste0(
+    "<b><a href=''>", monument_title,"</a></b><span> (", group_name, ")</span>",
+    "<p><b> AI-generated Description: </b></p><span>", rag_description, "</span>",
+    "<p><b> Datering:</b> ", datering, "</p><span><b>\nMost common datering:</b> ", most_common_datering, "</span>",
+    "<p><b> Read more <a href=", read_more_url, ">here!</a></b></p>",
+    "<p><b> AI-generated Recreation:</b> <img src='", img_base64, "' width='100' height='100'></p>"
   )
   return(popup_text)
 }
+
 
 # Add markers to map
 map_functions$add_markers <- function(mapbox_map, data_split) {
@@ -100,7 +112,7 @@ map_functions$create_map <- function(map_data, split_by = "anlaegsbet") {
     addMapboxTiles(style_id = "navigation-day-v1", username = "mapbox", group = "Navigation") %>% 
     setView(lng = dk[1],
             lat = dk[2],
-            zoom = 6.5)
+            zoom = 6.5) 
   
   mapbox_map <- map_functions$add_markers(mapbox_map, data_split)
  #  mapbox_map <- map_functions$add_markers_single_layer(mapbox_map, map_data)
