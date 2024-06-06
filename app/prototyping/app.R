@@ -2,7 +2,7 @@ renv::restore()
 
 library(pacman)
 
-p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi)
+p_load(shiny, leaflet, sf, dplyr, tidyverse, mapboxapi, shinyWidgets)
 
 # Source data_prep script, which loads necessary data for map
 source("data_prep_module.r")
@@ -16,12 +16,11 @@ ui <- navbarPage("My App",
                           sidebarLayout(
                             sidebarPanel(
                               h3("Engagee"),
-                              selectInput("group", "Choose a group:", choices = unique(sevaerdigheder$anlaegsbet))
+                              shinyWidgets::pickerInput("group", "Choose a group:", choices = unique(sevaerdigheder$anlaegsbet), multiple = TRUE, options = list(`actions-box` = TRUE))
                             ),
                             mainPanel(
-                              # Add a container with a fill and a stroke
-                              div(style = "border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #f9f9f9;",
-                                  leafletOutput("map")  # Add a leaflet output
+                              div(style = "border: 1px solid #ddd; border-radius: 8px; padding: 10px; background-color: #f5f5f5;",
+                                  leafletOutput("map")
                               )
                             )
                           )
@@ -30,15 +29,26 @@ ui <- navbarPage("My App",
                           fluidPage(
                             titlePanel("Page 2"),
                             h3("This is Page 2"),
-                            # You can add content for Page 2 here
                           )
                  )
 )
 
 # Server code
-server <- function(input, output) {
+server <- function(input, output, session) {
+  # Reactive expression to filter data based on the selected group
+filtered_data <- reactive({
+  sevaerdigheder[sevaerdigheder$anlaegsbet %in% input$group, ]
+})
+
+  # Render the leaflet map
   output$map <- renderLeaflet({
-    map_functions$create_map(map_data=sevaerdigheder, split_by = "anlaegsbet")
+    # Use the reactive filtered_data() instead of the original data
+    map_data <- filtered_data()
+
+    # Create the map using your map_functions$create_map function
+    mapbox_map <- map_functions$create_map(map_data)
+
+    mapbox_map
   })
 }
 
